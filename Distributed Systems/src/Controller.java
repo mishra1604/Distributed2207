@@ -75,6 +75,7 @@ public class Controller {
                 client.close();
             } catch (Exception e) {
                 System.err.println("error line 35: " + e);
+                // trial checker
             }
         }
     }
