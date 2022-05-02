@@ -76,13 +76,6 @@ public class Controller {
             } catch (Exception e) {
                 System.err.println("error line 35: " + e);
             }
-
-            // sending message back to the client
-            try {
-
-            } catch (Exception e) {
-                System.out.println("error in line 84: " + e);
-            }
         }
     }
 }

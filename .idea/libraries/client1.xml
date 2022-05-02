@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="client1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/Distributed Systems/out/production/DFScw/client.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
