@@ -63,6 +63,19 @@ public class Controller {
             command = data[0];
             return command;
     }
+
+    public void removeACK(String[] data, Integer dstoreport) {
+        synchronized (removeLock) {
+            if (fileToRemove_ACKPorts.containsKey(data[1])) {
+                fileToRemove_ACKPorts.get(data[1]).remove(dstoreport);
+            } // removing dstore with ack from list
+        }
+        dstore_port_files.get(dstoreport).remove(data[1]); //removes file from map of port
+        dstore_file_ports.get(data[1]).remove(dstoreport);// remove port from file - ports map
+        dstore_port_numbfiles.put(dstoreport,
+                dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
+    }
+
     public void store (String[] data, PrintWriter outClient ) {
         if (data.length != 3) {
             System.out.println("INCORRECT MESSAGE STRUCTURE FOR STORE");
@@ -185,15 +198,7 @@ public class Controller {
                                             //-----------------------------Dstore Remove_ACK Recieved-----------------------------
                                             if ((getCommand(dataline).equals("REMOVE_ACK")
                                                     || getCommand(dataline).equals("ERROR_FILE_DOES_NOT_EXIST"))) {
-                                                synchronized (removeLock) {
-                                                    if (fileToRemove_ACKPorts.containsKey(data[1])) {
-                                                        fileToRemove_ACKPorts.get(data[1]).remove(dstoreport);
-                                                    } // removing dstore with ack from list
-                                                }
-                                                dstore_port_files.get(dstoreport).remove(data[1]); //removes file from map of port
-                                                dstore_file_ports.get(data[1]).remove(dstoreport);// remove port from file - ports map
-                                                dstore_port_numbfiles.put(dstoreport,
-                                                        dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
+                                                removeACK(data, dstoreport);
                                             } else
 
                                             if (getCommand(dataline).equals("REBALANCE_COMPLETE") && activeRebalance) { // Dstore REMOVE_ACK filename
