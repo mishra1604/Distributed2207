@@ -76,6 +76,76 @@ public class Controller {
                 dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
     }
 
+    public void remove(String[] data, PrintWriter outClient) {
+        if (data.length != 2) {
+            System.err.println("Malformed message received for REMOVE");
+        } // log error and continue
+        String filename = data[1];
+        if (Dstore_count.get() < R) {
+            outClient.println("ERROR_NOT_ENOUGH_DSTORES");
+//                                                            ControllerLogger.getInstance().messageSent(client,
+//                                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+        } else if (!file_filesize.containsKey(filename)
+                || files_activeStore.contains(filename)) {
+            outClient.println("ERROR_FILE_DOES_NOT_EXIST");
+//                                                            ControllerLogger.getInstance().messageSent(client,
+//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+        } else {
+            synchronized (lock) {
+                if (files_activeRemove.contains(filename)
+                        || !file_filesize.containsKey(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
+                    outClient.println("ERROR_FILE_DOES_EXIST");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                } else {
+                    while (activeRebalance) { // waiting for rebalance to end
+                        continue;
+                    }
+                    files_activeRemove.add(filename);
+                    file_filesize.remove(filename);// remove file_filesize so if broken rebalance should fix
+                }
+            }
+            fileToRemove_ACKPorts.put(filename,
+                    new ArrayList<>(dstore_file_ports.get(filename))); // initializes the ports that wait for remove
+            files_addCount.remove(filename);
+
+            synchronized (removeLock) {
+                for (Integer port : fileToRemove_ACKPorts.get(filename)) { // send ports file to delete
+                    Socket dstoreSocket = dstore_port_Socket.get(port);
+                    PrintWriter outDstore = null;
+                    try {
+                        outDstore = new PrintWriter(
+                                dstoreSocket.getOutputStream(), true);
+                    } catch (IOException e) {
+                        System.out.println("Remove() error, Controller.java");
+                    }
+                    outDstore.println("REMOVE" + " " + filename);
+//                                                                    ControllerLogger.getInstance().messageSent(dstoreSocket,
+//                                                                            Protocol.REMOVE_TOKEN + " " + filename);
+                }
+            }
+
+            boolean success_Remove = false;
+            long timeout_time = System.currentTimeMillis() + timeout;
+            while (System.currentTimeMillis() <= timeout_time) {
+                if (fileToRemove_ACKPorts.get(filename).size() == 0) { // checks if file to store has completed acknowledgements
+                    outClient.println("REMOVE_COMPLETE");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.REMOVE_COMPLETE_TOKEN);
+                    dstore_file_ports.remove(filename);
+                    success_Remove = true;
+                    break;
+                }
+            }
+
+            if (!success_Remove) {
+                System.err.println("REMOVE timed out for: " + filename);
+            }
+            fileToRemove_ACKPorts.remove(filename);
+            files_activeRemove.remove(filename); // remove file ActiveRemove from INDEX
+        }
+    }
+
     public void load (String[] data, PrintWriter outClient, String dataline, ConcurrentHashMap<String, ArrayList<Integer>> dstore_file_portsLeftReload) {
         if (data.length != 2) {
             System.out.println("Malformed message received for LOAD/RELOAD");
@@ -279,70 +349,7 @@ public class Controller {
 
                                                     //-----------------------------Client Remove Command-----------------------------
                                                     if (getCommand(dataline).equals("REMOVE")) {
-                                                        if (data.length != 2) {
-                                                            System.err.println("Malformed message received for REMOVE");
-                                                            continue;
-                                                        } // log error and continue
-                                                        String filename = data[1];
-                                                        if (Dstore_count.get() < R) {
-                                                            outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-                                                        } else if (!file_filesize.containsKey(filename)
-                                                                || files_activeStore.contains(filename)) {
-                                                            outClient.println("ERROR_FILE_DOES_NOT_EXIST");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                                                        } else {
-                                                            synchronized (lock) {
-                                                                if (files_activeRemove.contains(filename)
-                                                                        || !file_filesize.containsKey(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
-                                                                    outClient.println("ERROR_FILE_DOES_EXIST");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                                                                    continue;
-                                                                } else {
-                                                                    while (activeRebalance) { // waiting for rebalance to end
-                                                                        continue;
-                                                                    }
-                                                                    files_activeRemove.add(filename);
-                                                                    file_filesize.remove(filename);// remove file_filesize so if broken rebalance should fix
-                                                                }
-                                                            }
-                                                            fileToRemove_ACKPorts.put(filename,
-                                                                    new ArrayList<>(dstore_file_ports.get(filename))); // initializes the ports that wait for remove
-                                                            files_addCount.remove(filename);
-
-                                                            synchronized (removeLock) {
-                                                                for (Integer port : fileToRemove_ACKPorts.get(filename)) { // send ports file to delete
-                                                                    Socket dstoreSocket = dstore_port_Socket.get(port);
-                                                                    PrintWriter outDstore = new PrintWriter(
-                                                                            dstoreSocket.getOutputStream(), true);
-                                                                    outDstore.println("REMOVE" + " " + filename);
-//                                                                    ControllerLogger.getInstance().messageSent(dstoreSocket,
-//                                                                            Protocol.REMOVE_TOKEN + " " + filename);
-                                                                }
-                                                            }
-
-                                                            boolean success_Remove = false;
-                                                            long timeout_time = System.currentTimeMillis() + timeout;
-                                                            while (System.currentTimeMillis() <= timeout_time) {
-                                                                if (fileToRemove_ACKPorts.get(filename).size() == 0) { // checks if file to store has completed acknowledgements
-                                                                    outClient.println("REMOVE_COMPLETE");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.REMOVE_COMPLETE_TOKEN);
-                                                                    dstore_file_ports.remove(filename);
-                                                                    success_Remove = true;
-                                                                    break;
-                                                                }
-                                                            }
-
-                                                            if (!success_Remove) {
-                                                                System.err.println("REMOVE timed out for: " + filename);
-                                                            }
-                                                            fileToRemove_ACKPorts.remove(filename);
-                                                            files_activeRemove.remove(filename); // remove file ActiveRemove from INDEX
-                                                        }
+                                                        remove(data, outClient);
                                                     } else
 
                                                         //-----------------------------Dstore List Recieved-----------------------------
