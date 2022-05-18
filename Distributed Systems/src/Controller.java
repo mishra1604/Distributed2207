@@ -76,6 +76,22 @@ public class Controller {
                 dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
     }
 
+    public void dstoreListReceived (Integer dstoreport, String[] data, Socket client) {
+        ArrayList<String> filelist = new ArrayList<String>(Arrays.asList(data));
+        filelist.remove(0); // remove command entry
+        dstore_port_numbfiles.put(dstoreport, filelist.size()); // updates port/numbfiles hashmap
+        dstore_port_files.put(dstoreport, filelist); // puts list in hashmap
+        dstore_port_Socket.put(dstoreport, client);
+        for (String string : filelist) {
+            if (dstore_file_ports.get(string) == null) {
+                dstore_file_ports.put(string, new ArrayList<Integer>());
+            }
+            if (!dstore_file_ports.get(string).contains(dstoreport))
+                dstore_file_ports.get(string).add(dstoreport); // puts the given file the port that its in
+        }
+        listACKPorts.add(dstoreport);
+    }
+
     public void remove(String[] data, PrintWriter outClient) {
         if (data.length != 2) {
             System.err.println("Malformed message received for REMOVE");
@@ -354,19 +370,7 @@ public class Controller {
 
                                                         //-----------------------------Dstore List Recieved-----------------------------
                                                         if (getCommand(dataline).equals("LIST") && isDstore && activeList) {
-                                                            ArrayList<String> filelist = new ArrayList<String>(Arrays.asList(data));
-                                                            filelist.remove(0); // remove command entry
-                                                            dstore_port_numbfiles.put(dstoreport, filelist.size()); // updates port/numbfiles hashmap
-                                                            dstore_port_files.put(dstoreport, filelist); // puts list in hashmap
-                                                            dstore_port_Socket.put(dstoreport, client);
-                                                            for (String string : filelist) {
-                                                                if (dstore_file_ports.get(string) == null) {
-                                                                    dstore_file_ports.put(string, new ArrayList<Integer>());
-                                                                }
-                                                                if (!dstore_file_ports.get(string).contains(dstoreport))
-                                                                    dstore_file_ports.get(string).add(dstoreport); // puts the given file the port that its in
-                                                            }
-                                                            listACKPorts.add(dstoreport);
+                                                            dstoreListReceived(dstoreport, data, client);
                                                         } else
 
                                                             //-----------------------------Client List Command-----------------------------
