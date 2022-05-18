@@ -63,6 +63,68 @@ public class Controller {
             command = data[0];
             return command;
     }
+    public void store (String[] data, PrintWriter outClient ) {
+        if (data.length != 3) {
+            System.out.println("INCORRECT MESSAGE STRUCTURE FOR STORE");
+        }
+        String filename = data[1];
+        Integer filesize = Integer.parseInt(data[2]);
+
+        if (Dstore_count.get() < R) {
+            outClient.println("ERROR_NOT_ENOUGH_DSTORES");
+//                                            ControllerLogger.getInstance().messageSent(client,
+//                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+        } else if (file_filesize.get(filename) != null
+                || files_activeRemove.contains(filename)) { // checks if file exists or in Remove INDEX
+            outClient.println("ERROR_FILE_ALREADY_EXISTS");
+//                                            ControllerLogger.getInstance().messageSent(client,
+//                                                    Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+        } else {
+            synchronized (lock) {
+                if (files_activeStore.contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
+                    outClient.println("ERROR_FILE_ALREADY_EXISTS");
+//                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                            Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+                    //continue;
+                } else {
+                    while (activeRebalance) { // waiting for rebalance to end
+                        continue;
+                    }
+                    files_activeStore.add(filename);// ADD FILE STORING INDEX
+                }
+            }
+
+            String portsToStore[] = getPortsToStore(R);
+            String portsToStoreString = String.join(" ", portsToStore);
+            fileToStore_ACKPorts.put(filename, new ArrayList<Integer>());// initialize store file acks
+            outClient.println("STORE_TO" + " " + portsToStoreString);
+//                                            ControllerLogger.getInstance().messageSent(client,
+//                                                    Protocol.STORE_TO_TOKEN + " " + portsToStoreString);
+
+            boolean success_Store = false;
+            long timeout_time = System.currentTimeMillis() + timeout;
+            while (System.currentTimeMillis() <= timeout_time) {
+                if (fileToStore_ACKPorts.get(filename).size() >= R) { // checks if file to store has completed acknowledgements
+                    outClient.println("STORE_COMPLETE");
+//                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                            Protocol.STORE_COMPLETE_TOKEN);
+                    dstore_file_ports.put(filename, fileToStore_ACKPorts.get(filename)); // update dstore_file_ports
+                    file_filesize.put(filename, filesize); // add new file's filesize
+                    success_Store = true;
+                    break;
+                }
+            }
+
+            if (!success_Store) {
+                System.err.println("Store timed out for: " + filename);
+            }
+
+            synchronized (storeLock) {
+                fileToStore_ACKPorts.remove(filename); // remove stored file from fileToStore_ACKPorts queue
+            }
+            files_activeStore.remove(filename);// FILE STORED REMOVE INDEX
+            }
+        }
 
     public void startController() {
         try {
@@ -105,67 +167,7 @@ public class Controller {
 
                                     //-----------------------------Client Store Command-----------------------------
                                     if (getCommand(dataline).equals("STORE")) {
-                                        if (data.length != 3) {
-                                            System.err.println("Malformed message received for STORE");
-                                            continue;
-                                        } // log error and continue
-                                        String filename = data[1];
-                                        Integer filesize = Integer.parseInt(data[2]);
-
-                                        if (Dstore_count.get() < R) {
-                                            outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-                                        } else if (file_filesize.get(filename) != null
-                                                || files_activeRemove.contains(filename)) { // checks if file exists or in Remove INDEX
-                                            outClient.println("ERROR_FILE_ALREADY_EXISTS");
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
-                                        } else {
-                                            synchronized (lock) {
-                                                if (files_activeStore.contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
-                                                    outClient.println("ERROR_FILE_ALREADY_EXISTS");
-//                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                            Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
-                                                    continue;
-                                                } else {
-                                                    while (activeRebalance) { // waiting for rebalance to end
-                                                        continue;
-                                                    }
-                                                    files_activeStore.add(filename);// ADD FILE STORING INDEX
-                                                }
-                                            }
-
-                                            String portsToStore[] = getPortsToStore(R);
-                                            String portsToStoreString = String.join(" ", portsToStore);
-                                            fileToStore_ACKPorts.put(filename, new ArrayList<Integer>());// initialize store file acks
-                                            outClient.println("STORE_TO" + " " + portsToStoreString);
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.STORE_TO_TOKEN + " " + portsToStoreString);
-
-                                            boolean success_Store = false;
-                                            long timeout_time = System.currentTimeMillis() + timeout;
-                                            while (System.currentTimeMillis() <= timeout_time) {
-                                                if (fileToStore_ACKPorts.get(filename).size() >= R) { // checks if file to store has completed acknowledgements
-                                                    outClient.println("STORE_COMPLETE");
-//                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                            Protocol.STORE_COMPLETE_TOKEN);
-                                                    dstore_file_ports.put(filename, fileToStore_ACKPorts.get(filename)); // update dstore_file_ports
-                                                    file_filesize.put(filename, filesize); // add new file's filesize
-                                                    success_Store = true;
-                                                    break;
-                                                }
-                                            }
-
-                                            if (!success_Store) {
-                                                System.err.println("Store timed out for: " + filename);
-                                            }
-
-                                            synchronized (storeLock) {
-                                                fileToStore_ACKPorts.remove(filename); // remove stored file from fileToStore_ACKPorts queue
-                                            }
-                                            files_activeStore.remove(filename);// FILE STORED REMOVE INDEX
-                                        }
+                                        store(data, outClient);
                                     } else
 
                                         //-----------------------------Dstore Store_ACK Recieved-----------------------------
