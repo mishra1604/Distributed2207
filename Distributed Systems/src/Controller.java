@@ -47,6 +47,25 @@ public class Controller {
         this.startController();
     }
 
+    public void getList (String[] data, PrintWriter outClient) {
+        if (data.length != 1) {
+            System.out.println("Malformed message received for LIST by Client");
+        } // log error and continue
+        if (Dstore_count.get() < R) {
+            outClient.println("ERROR_LOAD");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.ERROR_LOAD_TOKEN);
+        } else if (file_filesize.size() != 0) {
+            String filesList = String.join(" ", file_filesize.keySet());
+            outClient.println("LIST" + " " + filesList);
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.LIST_TOKEN + " " + filesList);
+        } else {
+            outClient.println("LIST");
+//                                                                    ControllerLogger.getInstance().messageSent(client, Protocol.LIST_TOKEN);
+        }
+    }
+
     /**
      * @param dataline String, sent from the client on cport to the controller
      * Method returns command from the Client: STORE LOAD REMOVE LIST
@@ -375,23 +394,7 @@ public class Controller {
 
                                                             //-----------------------------Client List Command-----------------------------
                                                             if (getCommand(dataline).equals("LIST") && !isDstore) {
-                                                                if (data.length != 1) {
-                                                                    System.err.println("Malformed message received for LIST by Client");
-                                                                    continue;
-                                                                } // log error and continue
-                                                                if (Dstore_count.get() < R) {
-                                                                    outClient.println("ERROR_LOAD");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_LOAD_TOKEN);
-                                                                } else if (file_filesize.size() != 0) {
-                                                                    String filesList = String.join(" ", file_filesize.keySet());
-                                                                    outClient.println("LIST" + " " + filesList);
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.LIST_TOKEN + " " + filesList);
-                                                                } else {
-                                                                    outClient.println("LIST");
-//                                                                    ControllerLogger.getInstance().messageSent(client, Protocol.LIST_TOKEN);
-                                                                }
+                                                                getList(data, outClient);
                                                             } else
 
                                                                 //-----------------------------Dstore Join Command-----------------------------
