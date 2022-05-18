@@ -47,6 +47,23 @@ public class Controller {
         this.startController();
     }
 
+    /**
+     * @param dataline String, sent from the client on cport to the controller
+     * Method returns command from the Client: STORE LOAD REMOVE LIST
+     * */
+
+    public String getCommand (String dataline) {
+        String[] data = dataline.split(" ");
+        String command;
+        if (data.length == 1) {
+            command = dataline.trim();
+            data[0] = command;
+            return command;
+        }
+            command = data[0];
+            return command;
+    }
+
     public void startController() {
         try {
             ServerSocket ss = new ServerSocket(cport);
@@ -83,18 +100,11 @@ public class Controller {
 //                                ControllerLogger.getInstance().messageReceived(client, dataline); // log recieved messages
                                 if (dataline != null) {
                                     String[] data = dataline.split(" ");
-                                    String command;
-                                    if (data.length == 1) {
-                                        command = dataline.trim();
-                                        data[0] = command;
-                                    } else {
-                                        command = data[0];
-                                    }
 
-                                    System.out.println("COMMAND RECIEVED \"" + command + "\"");
+                                    System.out.println("COMMAND RECIEVED \"" + getCommand(dataline) + "\"");
 
                                     //-----------------------------Client Store Command-----------------------------
-                                    if (command.equals("STORE")) {
+                                    if (getCommand(dataline).equals("STORE")) {
                                         if (data.length != 3) {
                                             System.err.println("Malformed message received for STORE");
                                             continue;
@@ -159,7 +169,7 @@ public class Controller {
                                     } else
 
                                         //-----------------------------Dstore Store_ACK Recieved-----------------------------
-                                        if (command.equals("STORE_ACK")) {
+                                        if (getCommand(dataline).equals("STORE_ACK")) {
                                             synchronized (storeLock) {
                                                 if (fileToStore_ACKPorts.containsKey(data[1]))
                                                     fileToStore_ACKPorts.get(data[1]).add(dstoreport);// add ack port inside chmap
@@ -171,8 +181,8 @@ public class Controller {
                                         } else
 
                                             //-----------------------------Dstore Remove_ACK Recieved-----------------------------
-                                            if ((command.equals("REMOVE_ACK")
-                                                    || command.equals("ERROR_FILE_DOES_NOT_EXIST"))) {
+                                            if ((getCommand(dataline).equals("REMOVE_ACK")
+                                                    || getCommand(dataline).equals("ERROR_FILE_DOES_NOT_EXIST"))) {
                                                 synchronized (removeLock) {
                                                     if (fileToRemove_ACKPorts.containsKey(data[1])) {
                                                         fileToRemove_ACKPorts.get(data[1]).remove(dstoreport);
@@ -184,12 +194,12 @@ public class Controller {
                                                         dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
                                             } else
 
-                                            if (command.equals("REBALANCE_COMPLETE") && activeRebalance) { // Dstore REMOVE_ACK filename
+                                            if (getCommand(dataline).equals("REBALANCE_COMPLETE") && activeRebalance) { // Dstore REMOVE_ACK filename
                                                 rebalanceCompleteACK.incrementAndGet();
                                             } else
 
                                                 //-----------------------------Client Load Command-----------------------------
-                                                if (command.equals("LOAD") || command.equals("RELOAD")) {
+                                                if (getCommand(dataline).equals("LOAD") || getCommand(dataline).equals("RELOAD")) {
                                                     if (data.length != 2) {
                                                         System.err.println("Malformed message received for LOAD/RELOAD");
                                                         continue;
@@ -207,7 +217,7 @@ public class Controller {
                                                         } else {
                                                             if (files_activeStore.contains(filename)
                                                                     || files_activeRemove.contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
-                                                                if (command.equals("LOAD")) {
+                                                                if (getCommand(dataline).equals("LOAD")) {
                                                                     outClient.println("ERROR_FILE_DOES_NOT_EXIST_TOKEN");
 //                                                                    ControllerLogger.getInstance().messageSent(client,
 //                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
@@ -224,7 +234,7 @@ public class Controller {
                                                                 continue;
                                                             }
 
-                                                            if (command.equals("LOAD")) {
+                                                            if (getCommand(dataline).equals("LOAD")) {
                                                                 dstore_file_portsLeftReload.put(filename,
                                                                         new ArrayList<>(dstore_file_ports.get(filename)));
                                                                 outClient.println("LOAD_FROM" + " "
@@ -259,7 +269,7 @@ public class Controller {
                                                 } else
 
                                                     //-----------------------------Client Remove Command-----------------------------
-                                                    if (command.equals("REMOVE")) {
+                                                    if (getCommand(dataline).equals("REMOVE")) {
                                                         if (data.length != 2) {
                                                             System.err.println("Malformed message received for REMOVE");
                                                             continue;
@@ -327,7 +337,7 @@ public class Controller {
                                                     } else
 
                                                         //-----------------------------Dstore List Recieved-----------------------------
-                                                        if (command.equals("LIST") && isDstore && activeList) {
+                                                        if (getCommand(dataline).equals("LIST") && isDstore && activeList) {
                                                             ArrayList<String> filelist = new ArrayList<String>(Arrays.asList(data));
                                                             filelist.remove(0); // remove command entry
                                                             dstore_port_numbfiles.put(dstoreport, filelist.size()); // updates port/numbfiles hashmap
@@ -344,7 +354,7 @@ public class Controller {
                                                         } else
 
                                                             //-----------------------------Client List Command-----------------------------
-                                                            if (command.equals("LIST") && !isDstore) {
+                                                            if (getCommand(dataline).equals("LIST") && !isDstore) {
                                                                 if (data.length != 1) {
                                                                     System.err.println("Malformed message received for LIST by Client");
                                                                     continue;
@@ -365,7 +375,7 @@ public class Controller {
                                                             } else
 
                                                                 //-----------------------------Dstore Join Command-----------------------------
-                                                                if (command.equals("JOIN")) {
+                                                                if (getCommand(dataline).equals("JOIN")) {
                                                                     if (data.length != 2) {
                                                                         System.err.println("Malformed message for Dstore Joining");
                                                                         continue;
