@@ -4,14 +4,14 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Controller {
+public class Trial {
 
     int cport;
     int R;
     int timeout; // milliseconds
     int rebalance_period;
 
-    public Controller (int cport, int R, int timeout, int rebalance_period){
+    public Trial(int cport, int R, int timeout, int rebalance_period){
         this.cport = cport;
         this.R = R;
         this.timeout = timeout;
@@ -39,7 +39,7 @@ public class Controller {
 
     public static void main(String[] args) {
 
-        Controller controller = new Controller(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]),Integer.parseInt(args[3]));
+        Trial controller = new Trial(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]),Integer.parseInt(args[3]));
 
         ServerSocket ss = null;
         try {
