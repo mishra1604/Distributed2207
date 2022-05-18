@@ -76,6 +76,73 @@ public class Controller {
                 dstore_port_numbfiles.get(dstoreport) - 1); // suspend 1 from file count
     }
 
+    public void load (String[] data, PrintWriter outClient, String dataline, ConcurrentHashMap<String, ArrayList<Integer>> dstore_file_portsLeftReload) {
+        if (data.length != 2) {
+            System.out.println("Malformed message received for LOAD/RELOAD");
+        } // log error and continue
+        String filename = data[1];
+        if (Dstore_count.get() < R) {
+            outClient.println("ERROR_NOT_ENOUGH_DSTORES");
+//                                                        ControllerLogger.getInstance().messageSent(client,
+//                                                                Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+        } else {
+            if (!file_filesize.containsKey(filename)) { // CHECKS FILE CONTAINS AND INDEX
+                outClient.println("ERROR_FILE_DOES_NOT_EXIST");
+//                                                            ControllerLogger.getInstance().messageSent(client,
+//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+            } else {
+                if (files_activeStore.contains(filename)
+                        || files_activeRemove.contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
+                    String dt;
+                    if (getCommand(dataline).equals("LOAD")) {
+                        outClient.println("ERROR_FILE_DOES_NOT_EXIST_TOKEN");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+                    } else {
+                        outClient.println("ERROR_LOAD");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.ERROR_LOAD_TOKEN);
+                    }
+                }
+
+                while (activeRebalance) {
+                    continue;
+                }
+
+                if (getCommand(dataline).equals("LOAD")) {
+                    dstore_file_portsLeftReload.put(filename,
+                            new ArrayList<>(dstore_file_ports.get(filename)));
+                    outClient.println("LOAD_FROM" + " "
+                            + dstore_file_portsLeftReload.get(filename).get(0) + " "
+                            + file_filesize.get(filename));
+//                                                                ControllerLogger.getInstance().messageSent(client,
+//                                                                        Protocol.LOAD_FROM_TOKEN + " "
+//                                                                                + dstore_file_portsLeftReload.get(filename).get(0)
+//                                                                                + " " + file_filesize.get(filename));
+                    dstore_file_portsLeftReload.get(filename).remove(0);
+                } else {
+                    if (dstore_file_portsLeftReload.get(filename) != null
+                            && !dstore_file_portsLeftReload.get(filename).isEmpty()) {
+                        outClient.println("LOAD_FROM" + " "
+                                + dstore_file_portsLeftReload.get(filename).get(0) + " "
+                                + file_filesize.get(filename));
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.LOAD_FROM_TOKEN
+//                                                                                    + " " + dstore_file_portsLeftReload
+//                                                                                    .get(filename).get(0)
+//                                                                                    + " " + file_filesize.get(filename));
+                        dstore_file_portsLeftReload.get(filename).remove(0);
+                    } else {
+                        outClient.println("ERROR_LOAD");
+//                                                                    ControllerLogger.getInstance().messageSent(client,
+//                                                                            Protocol.ERROR_LOAD_TOKEN);
+                    }
+                }
+
+            }
+        }
+    }
+
     public void store (String[] data, PrintWriter outClient ) {
         if (data.length != 3) {
             System.out.println("INCORRECT MESSAGE STRUCTURE FOR STORE");
@@ -207,72 +274,7 @@ public class Controller {
 
                                                 //-----------------------------Client Load Command-----------------------------
                                                 if (getCommand(dataline).equals("LOAD") || getCommand(dataline).equals("RELOAD")) {
-                                                    if (data.length != 2) {
-                                                        System.err.println("Malformed message received for LOAD/RELOAD");
-                                                        continue;
-                                                    } // log error and continue
-                                                    String filename = data[1];
-                                                    if (Dstore_count.get() < R) {
-                                                        outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                                        ControllerLogger.getInstance().messageSent(client,
-//                                                                Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-                                                    } else {
-                                                        if (!file_filesize.containsKey(filename)) { // CHECKS FILE CONTAINS AND INDEX
-                                                            outClient.println("ERROR_FILE_DOES_NOT_EXIST");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                                                        } else {
-                                                            if (files_activeStore.contains(filename)
-                                                                    || files_activeRemove.contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
-                                                                if (getCommand(dataline).equals("LOAD")) {
-                                                                    outClient.println("ERROR_FILE_DOES_NOT_EXIST_TOKEN");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-                                                                    continue;
-                                                                } else {
-                                                                    outClient.println("ERROR_LOAD");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_LOAD_TOKEN);
-                                                                    continue;
-                                                                }
-                                                            }
-
-                                                            while (activeRebalance) {
-                                                                continue;
-                                                            }
-
-                                                            if (getCommand(dataline).equals("LOAD")) {
-                                                                dstore_file_portsLeftReload.put(filename,
-                                                                        new ArrayList<>(dstore_file_ports.get(filename)));
-                                                                outClient.println("LOAD_FROM" + " "
-                                                                        + dstore_file_portsLeftReload.get(filename).get(0) + " "
-                                                                        + file_filesize.get(filename));
-//                                                                ControllerLogger.getInstance().messageSent(client,
-//                                                                        Protocol.LOAD_FROM_TOKEN + " "
-//                                                                                + dstore_file_portsLeftReload.get(filename).get(0)
-//                                                                                + " " + file_filesize.get(filename));
-                                                                dstore_file_portsLeftReload.get(filename).remove(0);
-                                                            } else {
-                                                                if (dstore_file_portsLeftReload.get(filename) != null
-                                                                        && !dstore_file_portsLeftReload.get(filename).isEmpty()) {
-                                                                    outClient.println("LOAD_FROM" + " "
-                                                                            + dstore_file_portsLeftReload.get(filename).get(0) + " "
-                                                                            + file_filesize.get(filename));
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.LOAD_FROM_TOKEN
-//                                                                                    + " " + dstore_file_portsLeftReload
-//                                                                                    .get(filename).get(0)
-//                                                                                    + " " + file_filesize.get(filename));
-                                                                    dstore_file_portsLeftReload.get(filename).remove(0);
-                                                                } else {
-                                                                    outClient.println("ERROR_LOAD");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_LOAD_TOKEN);
-                                                                }
-                                                            }
-
-                                                        }
-                                                    }
+                                                    load(data, outClient, dataline, dstore_file_portsLeftReload);
                                                 } else
 
                                                     //-----------------------------Client Remove Command-----------------------------
