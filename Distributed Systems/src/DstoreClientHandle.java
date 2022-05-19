@@ -1,10 +1,12 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class DstoreClientHandle implements Runnable {
     Socket client;
     Socket controller;
     SubDstore subDstore = null;
+    ArrayList<String> clientInstructionList = new ArrayList<>();
 
     public DstoreClientHandle (Socket clientsocket, Socket controllersocket, SubDstore subDstore) {
         this.client = clientsocket;
@@ -87,6 +89,23 @@ public class DstoreClientHandle implements Runnable {
         }
     }
 
+    public ArrayList<String> getClientInstructionList() {
+        clientInstructionList.add("STORE");
+        clientInstructionList.add("LOAD_DATA");
+        return clientInstructionList;
+    }
+
+    public void clientCommandHandler (String command, String[] data, PrintWriter outClient, PrintWriter outController, InputStream in) {
+        //-----------------------------Client Store Command-----------------------------
+        if (command.equals("STORE")) {
+            clientStore(data, outClient, outController, in);
+        //-----------------------------Client Load Command-----------------------------
+        } else if (command.equals("LOAD_DATA")) {
+            clientLoad(data);
+
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -106,36 +125,12 @@ public class DstoreClientHandle implements Runnable {
                         getCommand(data, dataline);
                         System.out.println("Recieved Client Command: " + getCommand(data, dataline));
 
-                        //-----------------------------Client Store Command-----------------------------
-                        if (getCommand(data, dataline).equals("STORE")) {
-                            clientStore(data, outClient, outController, in);
-                        } /*else
-
-                            //-----------------------------Dstore Rebalance Asked-----------------------------
-                            if (getCommand(data, dataline).equals("REBALANCE_STORE")) {
-                                if (data.length != 3) {
-                                    System.err.println("Malformed message received for REBALANCE_STORE");
-                                    continue;
-                                } // log error and continue
-                                outClient.println("ACK");
-//                                            DstoreLogger.getInstance().messageSent(client, Protocol.ACK_TOKEN);
-                                int filesize = Integer.parseInt(data[2]);
-                                File outputFile = new File(subDstore.getObject().getPath() + File.separator + data[1]);
-                                FileOutputStream out = new FileOutputStream(outputFile);
-                                out.write(in.readNBytes(filesize)); // possible threadlock?? maybe
-                                out.flush();
-                                out.close();
-                                client.close();
-                                return;
-                            }*/ else
-
-                                //-----------------------------Client Load Command-----------------------------
-                                if (getCommand(data, dataline).equals("LOAD_DATA")) {
-                                    clientLoad(data);
-                                } else {
-                                    System.err.println("Unrecognised Command! - " + dataline);
+                        if (getClientInstructionList().contains(getCommand(data, dataline))) {
+                            clientCommandHandler(getCommand(data, dataline), data, outClient, outController, in);
+                        } else {
+                            System.err.println("Unrecognised Command! - " + dataline);
                                     continue; // log error
-                                }
+                        }
                     } else {
                         client.close();
                         break;
