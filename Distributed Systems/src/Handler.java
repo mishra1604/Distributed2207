@@ -5,10 +5,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Handler implements Runnable {
     private Socket clientSocket;
@@ -63,7 +60,7 @@ public class Handler implements Runnable {
                 System.err.println("Malformed message received for LIST by Client");
                 continue;
             } // log error and continue
-            if (controllerObject1.getObject().getDstore_count().get() < controllerObject1.getObject().getR()) {
+            if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_LOAD");
             } else if (controllerObject1.getObject().getFile_filesize().size() != 0) {
                 String filesList = String.join(" ", controllerObject1.getObject().getFile_filesize().keySet());
@@ -83,7 +80,7 @@ public class Handler implements Runnable {
                 continue;
             } // log error and continue
             String filename = data[1];
-            if (controllerObject1.getObject().getDstore_count().get() < controllerObject1.getObject().getR()) {
+            if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
 //                                                            ControllerLogger.getInstance().messageSent(client,
 //                                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
@@ -158,7 +155,7 @@ public class Handler implements Runnable {
                 continue;
             } // log error and continue
             String filename = data[1];
-            if (controllerObject1.getObject().getDstore_count().get() < controllerObject1.getObject().getR()) {
+            if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
 //                                                        ControllerLogger.getInstance().messageSent(client,
 //                                                                Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
@@ -171,7 +168,7 @@ public class Handler implements Runnable {
                     if (controllerObject1.getObject().getFiles_activeStore().contains(filename)
                             || controllerObject1.getObject().getFiles_activeRemove().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         if (getCommand(dataline).equals("LOAD")) {
-                            outClient.println("ERROR_FILE_DOES_NOT_EXIST_TOKEN");
+                            outClient.println("ERROR_FILE_DOES_NOT_EXIST");
 //                                                                    ControllerLogger.getInstance().messageSent(client,
 //                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                             continue;
@@ -232,7 +229,7 @@ public class Handler implements Runnable {
             String filename = data[1];
             Integer filesize = Integer.parseInt(data[2]);
 
-            if (controllerObject1.getObject().getDstore_count().get() < controllerObject1.getObject().getR()) {
+            if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
 //                                            ControllerLogger.getInstance().messageSent(client,
 //                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
@@ -316,7 +313,7 @@ public class Handler implements Runnable {
                 controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
                 controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                 isDstore = true;
-                controllerObject1.getObject().getDstore_count().incrementAndGet();
+                controllerObject1.getObject().getDstoreCount().incrementAndGet();
                 //controllerObject1.getObject().setActiveRebalance(true);
                 //controllerObject1.getObject().setRebalanceTime(System.currentTimeMillis()); // turn on rebalance if not running
             }
@@ -430,7 +427,7 @@ public class Handler implements Runnable {
                         controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
                         controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                         isDstore = true;
-                        controllerObject1.getObject().getDstore_count().incrementAndGet();
+                        controllerObject1.getObject().getDstoreCount().incrementAndGet();
                         //controllerObject1.getObject().setActiveRebalance(true);
                         //controllerObject1.getObject().setRebalanceTime(System.currentTimeMillis()); // turn on rebalance if not running
                     }
@@ -441,7 +438,7 @@ public class Handler implements Runnable {
             } else {
                 if (isDstore) {
                     System.err.println("DSTORE Disconnected!");
-                    controllerObject1.getObject().getDstore_count().decrementAndGet(); //decrease count if dstore disconnected
+                    controllerObject1.getObject().getDstoreCount().decrementAndGet(); //decrease count if dstore disconnected
                     /*while (controllerObject1.getObject().getActiveRebalance()) {
                         continue;
                     }*/
@@ -476,7 +473,7 @@ public class Handler implements Runnable {
             } catch (Exception e) {
                 if (isDstore) {
                     System.err.println("DSTORE CRASHED! -" + e);
-                    controllerObject1.getObject().getDstore_count().decrementAndGet(); //decrease count if dstore disconnected
+                    controllerObject1.getObject().getDstoreCount().decrementAndGet(); //decrease count if dstore disconnected
                     /*while (controllerObject1.getObject().getActiveRebalance()) {
                         continue;
                     }*/
