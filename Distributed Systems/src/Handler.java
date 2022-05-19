@@ -420,9 +420,9 @@ public class Handler implements Runnable {
                         break;
                     }
                     synchronized (controllerObject1.getObject().getDstoreJoinLock()) {
-                        while (controllerObject1.getObject().getActiveRebalance()) {
+                        /*while (controllerObject1.getObject().getActiveRebalance()) {
                             continue;
-                        }
+                        }*/
                         controllerObject1.getObject().getDstore_port_files().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
                         controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
                         controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);

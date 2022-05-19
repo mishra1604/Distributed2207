@@ -28,21 +28,6 @@ public class Controller {
 
     private AtomicInteger DstoreCount = new AtomicInteger(0); // number of operating Dstores
 
-    public AtomicInteger getRebalanceCompleteACK() {
-        return rebalanceCompleteACK;
-    }
-
-    private AtomicInteger rebalanceCompleteACK = new AtomicInteger(0); // counter for rebalance operation competion
-
-    public Boolean getActiveRebalance() {
-        return activeRebalance;
-    }
-
-    public void setActiveRebalance(Boolean activeRebalance) {
-        this.activeRebalance = activeRebalance;
-    }
-
-    private volatile Boolean activeRebalance = false; // rebalance operation is active
 
     public Boolean getActiveList() {
         return activeList;
@@ -54,15 +39,6 @@ public class Controller {
 
     private volatile Boolean activeList = false; // if rebalance list request is active
 
-    public Long getRebalanceTime() {
-        return rebalanceTime;
-    }
-
-    public void setRebalanceTime(Long rebalanceTime) {
-        this.rebalanceTime = rebalanceTime;
-    }
-
-    private volatile Long rebalanceTime; // tracks if it is time for rebalance
 
     public Object getLock() {
         return lock;
@@ -237,57 +213,4 @@ public class Controller {
         }
         return returnPorts;
     }
-
-    private synchronized void clearPort(Integer port) {
-        System.out.println("CLEARING DISCONNECTED PORT " + port);
-        for (String file : dstore_port_files.get(port)) {
-            if (files_addCount.get(file) == null) {
-                files_addCount.put(file, 1);
-            } else {
-                files_addCount.put(file, files_addCount.get(file) + 1);
-            }
-        }
-        dstore_port_files.remove(port);
-        dstore_port_numbfiles.remove(port);
-        dstore_port_Socket.remove(port);
-        ConcurrentHashMap<String, ArrayList<Integer>> tempFilePorts = new ConcurrentHashMap<String, ArrayList<Integer>>(
-                dstore_file_ports);
-        for (String file : tempFilePorts.keySet()) {
-            if (!file_filesize.keySet().contains(file)) {
-                dstore_file_ports.remove(file);
-            } else if (dstore_file_ports.get(file).contains(port)) {
-                dstore_file_ports.get(file).remove(port);
-            }
-        }
-        System.out.println("CLEARED PORT " + port);
-    }
-
-    private synchronized Integer[] getPortsToStoreFile(int n, String file) { // finds R ports with least files
-        Integer ports[] = new Integer[n];
-
-        for (Integer port : dstore_port_numbfiles.keySet()) {
-            int max = 0;
-            for (int i = 0; i < n; i++) {
-                if (ports[i] == null) {
-                    max = i;
-                    ports[i] = port;
-                    break;
-                }
-                if (ports[i] != null && dstore_port_numbfiles.get(ports[i]) > dstore_port_numbfiles.get(ports[max])
-                        && !dstore_port_files.get(ports[i]).contains(file)) {
-                    max = i;
-                }
-            }
-            if (dstore_port_numbfiles.get(port) <= dstore_port_numbfiles.get(ports[max])
-                    && !dstore_port_files.get(port).contains(file)) {
-                ports[max] = port;
-            } else if (dstore_port_numbfiles.get(port) > dstore_port_numbfiles.get(ports[max])
-                    && dstore_port_files.get(ports[max]).contains(file)) {
-                ports[max] = port;
-            }
-        }
-
-        return ports;
-    }
-
 }
