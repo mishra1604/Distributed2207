@@ -28,6 +28,29 @@ public class HandleDstore implements Runnable{
     }
 
 
+    public void controllerRemove (String[] data, PrintWriter outController) {
+        for (;;) {
+            if (data.length != 2) {
+                System.err.println("Malformed message received for Remove");
+                continue;
+            } // log error and continue
+            String filename = data[1];
+            File fileRemove = new File(subDstoreClass.getObject().getPath() + File.separator + filename);
+            if (!fileRemove.exists() || !fileRemove.isFile()) {
+                outController.println("ERROR_FILE_DOES_NOT_EXIST" + " " + filename);
+//                                    DstoreLogger.getInstance().messageSent(controller,
+//                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN + " " + filename);
+            } else {
+                fileRemove.delete();
+                outController.println("REMOVE_ACK" + " " + filename);
+//                                    DstoreLogger.getInstance().messageSent(controller,
+//                                            Protocol.REMOVE_ACK_TOKEN + " " + filename);
+            }
+            break;
+        }
+    }
+
+
     @Override
     public void run() {
         try {
@@ -51,22 +74,7 @@ public class HandleDstore implements Runnable{
 
                         //-----------------------------Controller Remove Command-----------------------------
                         if (getCommand(data, dataline).equals("REMOVE")) {
-                            if (data.length != 2) {
-                                System.err.println("Malformed message received for Remove");
-                                continue;
-                            } // log error and continue
-                            String filename = data[1];
-                            File fileRemove = new File(subDstoreClass.getObject().getPath() + File.separator + filename);
-                            if (!fileRemove.exists() || !fileRemove.isFile()) {
-                                outController.println("ERROR_FILE_DOES_NOT_EXIST" + " " + filename);
-//                                    DstoreLogger.getInstance().messageSent(controller,
-//                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN + " " + filename);
-                            } else {
-                                fileRemove.delete();
-                                outController.println("REMOVE_ACK" + " " + filename);
-//                                    DstoreLogger.getInstance().messageSent(controller,
-//                                            Protocol.REMOVE_ACK_TOKEN + " " + filename);
-                            }
+                            controllerRemove(data, outController);
                         } else
 
                             //-----------------------------Controller Rebalance Command-----------------------------
