@@ -25,6 +25,38 @@ public class DstoreClientHandle implements Runnable {
         }
     }
 
+
+    public void clientStore (String[] data, PrintWriter outClient, PrintWriter outController, InputStream in) {
+        for (;;) {
+            try {
+                if (data.length != 3) {
+                    System.err.println("Malformed message received for STORE");
+                    continue;
+                } // log error and continue
+                outClient.println("ACK");
+//                                        DstoreLogger.getInstance().messageSent(client, "ACK");
+                int filesize = Integer.parseInt(data[2]);
+                File outputFile = new File(subDstore.getObject().getPath() + File.separator + data[1]);
+                FileOutputStream out = new FileOutputStream(outputFile);
+                long timeout_time = System.currentTimeMillis() + subDstore.getObject().getTimeout();
+                while (System.currentTimeMillis() <= timeout_time) {
+                    out.write(in.readNBytes(filesize)); // possible threadlock?? maybe
+                    outController.println("STORE_ACK" + " " + data[1]);
+//                                            DstoreLogger.getInstance().messageSent(controller,
+//                                                    Protocol.STORE_ACK_TOKEN + " " + data[1]);
+                    break;
+                }
+                out.flush();
+                out.close();
+                client.close();
+                return;
+            } catch (Exception e) {
+                System.out.println("File store error clientStore()" + e);
+            }
+            break;
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -41,19 +73,12 @@ public class DstoreClientHandle implements Runnable {
 //                                DstoreLogger.getInstance().messageReceived(client, dataline);
                     if (dataline != null) {
                         String[] data = dataline.split(" ");
-                        /*String command;
-                        if (data.length == 1) {
-                            command = dataline.trim();
-                            data[0] = command;
-                        } else {
-                            command = data[0];
-                        }*/
                         getCommand(data, dataline);
                         System.out.println("Recieved Client Command: " + getCommand(data, dataline));
 
                         //-----------------------------Client Store Command-----------------------------
                         if (getCommand(data, dataline).equals("STORE")) {
-                            if (data.length != 3) {
+                            /*if (data.length != 3) {
                                 System.err.println("Malformed message received for STORE");
                                 continue;
                             } // log error and continue
@@ -73,7 +98,8 @@ public class DstoreClientHandle implements Runnable {
                             out.flush();
                             out.close();
                             client.close();
-                            return;
+                            return;*/
+                            clientStore(data, outClient, outController, in);
                         } else
 
                             //-----------------------------Dstore Rebalance Asked-----------------------------
