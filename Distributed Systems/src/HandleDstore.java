@@ -41,13 +41,9 @@ public class HandleDstore implements Runnable{
             File fileRemove = new File(subDstoreClass.getObject().getPath() + File.separator + filename);
             if (!fileRemove.exists() || !fileRemove.isFile()) {
                 outController.println("ERROR_FILE_DOES_NOT_EXIST" + " " + filename);
-//                                    DstoreLogger.getInstance().messageSent(controller,
-//                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN + " " + filename);
             } else {
                 fileRemove.delete();
                 outController.println("REMOVE_ACK" + " " + filename);
-//                                    DstoreLogger.getInstance().messageSent(controller,
-//                                            Protocol.REMOVE_ACK_TOKEN + " " + filename);
             }
             break;
         }
@@ -92,13 +88,11 @@ public class HandleDstore implements Runnable{
             String dataline = null;
 
             outController.println("JOIN" + " " + subDstoreClass.getObject().getPort());
-            //DstoreLogger.getInstance().messageSent(controller, "JOIN" + " " + port);
             System.out.println("Entering loop of Controller");
 
             try {
                 for (;;) {
                     dataline = inController.readLine();
-                    //DstoreLogger.getInstance().messageReceived(controller, dataline);
                     if (dataline != null) {
                         String[] data = dataline.split(" ");
 

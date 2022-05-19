@@ -1,6 +1,6 @@
 public class SubDstore {
     private Dstore dstoreObject = null;
-    //preserves a single object of the controller class instead of creating multiple instances of it
+    //used for getting the Object of the Dstore class
     public SubDstore(Dstore d){
         this.dstoreObject = d;
     }

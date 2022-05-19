@@ -58,71 +58,71 @@ public class Controller {
 
     private Object storeLock = new Object();
 
-    public Object getDstoreJoinLock() {
-        return DstoreJoinLock;
+    public Object getDstorejoinlock() {
+        return Dstorejoinlock;
     }
 
-    private Object DstoreJoinLock = new Object();
+    private Object Dstorejoinlock = new Object();
 
-    public List<Integer> getListACKPorts() {
-        return listACKPorts;
+    public List<Integer> getAckPortsList() {
+        return ackPortsList;
     }
 
-    private List<Integer> listACKPorts = Collections.synchronizedList(new ArrayList<Integer>()); // index of active file stores
+    private List<Integer> ackPortsList = Collections.synchronizedList(new ArrayList<Integer>()); // index of active file stores
 
-    public List<String> getFiles_activeStore() {
-        return files_activeStore;
+    public List<String> getActiveFileStore() {
+        return activeFileStore;
     }
 
-    private List<String> files_activeStore = Collections.synchronizedList(new ArrayList<String>()); // index of active file stores
+    private List<String> activeFileStore = Collections.synchronizedList(new ArrayList<String>()); // index of active file stores
 
-    public List<String> getFiles_activeRemove() {
-        return files_activeRemove;
+    public List<String> getActiveFileRemove() {
+        return activeFileRemove;
     }
 
-    private List<String> files_activeRemove = Collections.synchronizedList(new ArrayList<String>()); // index of active file removes
+    private List<String> activeFileRemove = Collections.synchronizedList(new ArrayList<String>()); // index of active file removes
 
-    public ConcurrentHashMap<Integer, ArrayList<String>> getDstore_port_files() {
-        return dstore_port_files;
+    public ConcurrentHashMap<Integer, ArrayList<String>> getDstoreFileList() {
+        return dstoreFileList;
     }
 
-    private ConcurrentHashMap<Integer, ArrayList<String>> dstore_port_files = new ConcurrentHashMap<>(); // dstore port with fileslist
+    private ConcurrentHashMap<Integer, ArrayList<String>> dstoreFileList = new ConcurrentHashMap<>(); // dstore port with fileslist
 
-    public ConcurrentHashMap<Integer, Integer> getDstore_port_numbfiles() {
-        return dstore_port_numbfiles;
+    public ConcurrentHashMap<Integer, Integer> getDstoreFileCount() {
+        return dstoreFileCount;
     }
 
-    private ConcurrentHashMap<Integer, Integer> dstore_port_numbfiles = new ConcurrentHashMap<>(); // dstore port with its file count(reduces overhead)
+    private ConcurrentHashMap<Integer, Integer> dstoreFileCount = new ConcurrentHashMap<>(); // dstore port with its file count(reduces overhead)
 
-    public ConcurrentHashMap<String, ArrayList<Integer>> getDstore_file_ports() {
-        return dstore_file_ports;
+    public ConcurrentHashMap<String, ArrayList<Integer>> getFilePortList() {
+        return filePortList;
     }
 
-    private ConcurrentHashMap<String, ArrayList<Integer>> dstore_file_ports = new ConcurrentHashMap<>(); // files with ports location relation
+    private ConcurrentHashMap<String, ArrayList<Integer>> filePortList = new ConcurrentHashMap<>(); // files with ports location relation
 
     public ConcurrentHashMap<String, Integer> getFile_filesize() {
-        return file_filesize;
+        return fileFileSize;
     }
 
-    private ConcurrentHashMap<String, Integer> file_filesize = new ConcurrentHashMap<>(); // keeps track of all valid files with their sizes
+    private ConcurrentHashMap<String, Integer> fileFileSize = new ConcurrentHashMap<>(); // keeps track of all valid files with their sizes
 
     public ConcurrentHashMap<Integer, Socket> getDstore_port_Socket() {
-        return dstore_port_Socket;
+        return dstorePortSocket;
     }
 
-    private ConcurrentHashMap<Integer, Socket> dstore_port_Socket = new ConcurrentHashMap<>();// dstore port - Socket relation
+    private ConcurrentHashMap<Integer, Socket> dstorePortSocket = new ConcurrentHashMap<>();// dstore port - Socket relation
 
-    public ConcurrentHashMap<String, ArrayList<Integer>> getFileToStore_ACKPorts() {
-        return fileToStore_ACKPorts;
+    public ConcurrentHashMap<String, ArrayList<Integer>> getAckPortsFileStore() {
+        return ackPortsFileStore;
     }
 
-    private ConcurrentHashMap<String, ArrayList<Integer>> fileToStore_ACKPorts = new ConcurrentHashMap<>(); //counts stored file confirmatios
+    private ConcurrentHashMap<String, ArrayList<Integer>> ackPortsFileStore = new ConcurrentHashMap<>(); //counts stored file confirmatios
 
-    public ConcurrentHashMap<String, ArrayList<Integer>> getFileToRemove_ACKPorts() {
-        return fileToRemove_ACKPorts;
+    public ConcurrentHashMap<String, ArrayList<Integer>> getAckPortsFileREmove() {
+        return ackPortsFileREmove;
     }
 
-    private ConcurrentHashMap<String, ArrayList<Integer>> fileToRemove_ACKPorts = new ConcurrentHashMap<>(); //counts removed file confirmatios
+    private ConcurrentHashMap<String, ArrayList<Integer>> ackPortsFileREmove = new ConcurrentHashMap<>(); //counts removed file confirmatios
 
     public ConcurrentHashMap<String, Integer> getFiles_addCount() {
         return files_addCount;
@@ -130,11 +130,11 @@ public class Controller {
 
     private ConcurrentHashMap<String, Integer> files_addCount = new ConcurrentHashMap<>(); //counts files to add from failed dstores
 
-    public ConcurrentHashMap<String, Integer> getFiles_RemoveCount() {
-        return files_RemoveCount;
+    public ConcurrentHashMap<String, Integer> getRemoveCountFiles() {
+        return removeCountFiles;
     }
 
-    private ConcurrentHashMap<String, Integer> files_RemoveCount = new ConcurrentHashMap<>(); //counts files to remove from failed dstores
+    private ConcurrentHashMap<String, Integer> removeCountFiles = new ConcurrentHashMap<>(); //counts files to remove from failed dstores
     private ControllerObject1 controllerObject1;
 
     public Controller(int cport, int R, int timeout, int rebalance_period) {
@@ -189,7 +189,7 @@ public class Controller {
     private String[] getPortsToStore(int R) { // finds R ports with least files
         Integer ports[] = new Integer[R];
 
-        for (Integer port : dstore_port_numbfiles.keySet()) {
+        for (Integer port : dstoreFileCount.keySet()) {
             int max = 0;
 
             for (int i = 0; i < R; i++) {
@@ -198,11 +198,11 @@ public class Controller {
                     ports[i] = port;
                     break;
                 }
-                if (ports[i] != null && dstore_port_numbfiles.get(ports[i]) > dstore_port_numbfiles.get(ports[max])) {
+                if (ports[i] != null && dstoreFileCount.get(ports[i]) > dstoreFileCount.get(ports[max])) {
                     max = i;
                 }
             }
-            if (dstore_port_numbfiles.get(port) < dstore_port_numbfiles.get(ports[max])) {
+            if (dstoreFileCount.get(port) < dstoreFileCount.get(ports[max])) {
                 ports[max] = port;
             }
         }

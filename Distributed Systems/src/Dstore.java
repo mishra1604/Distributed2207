@@ -44,13 +44,7 @@ public class Dstore {
         this.cport = cport;
         this.timeout = timeout;
         this.file_folder = file_folder;
-//        try {
-//            //DstoreLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL, port);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
         try {
-            //startDstore();
             openDstore();
         } catch (Exception e) {
             e.printStackTrace();

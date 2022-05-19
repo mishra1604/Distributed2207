@@ -40,17 +40,17 @@ public class Handler implements Runnable {
     public void dstoreList (String[] data, Integer dstoreport) {
         ArrayList<String> filelist = new ArrayList<String>(Arrays.asList(data));
         filelist.remove(0); // remove command entry
-        controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, filelist.size()); // updates port/numbfiles hashmap
-        controllerObject1.getObject().getDstore_port_files().put(dstoreport, filelist); // puts list in hashmap
+        controllerObject1.getObject().getDstoreFileCount().put(dstoreport, filelist.size()); // updates port/numbfiles hashmap
+        controllerObject1.getObject().getDstoreFileList().put(dstoreport, filelist); // puts list in hashmap
         controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
         for (String string : filelist) {
-            if (controllerObject1.getObject().getDstore_file_ports().get(string) == null) {
-                controllerObject1.getObject().getDstore_file_ports().put(string, new ArrayList<Integer>());
+            if (controllerObject1.getObject().getFilePortList().get(string) == null) {
+                controllerObject1.getObject().getFilePortList().put(string, new ArrayList<Integer>());
             }
-            if (!controllerObject1.getObject().getDstore_file_ports().get(string).contains(dstoreport))
-                controllerObject1.getObject().getDstore_file_ports().get(string).add(dstoreport); // puts the given file the port that its in
+            if (!controllerObject1.getObject().getFilePortList().get(string).contains(dstoreport))
+                controllerObject1.getObject().getFilePortList().get(string).add(dstoreport); // puts the given file the port that its in
         }
-        controllerObject1.getObject().getListACKPorts().add(dstoreport);
+        controllerObject1.getObject().getAckPortsList().add(dstoreport);
     }
 
 
@@ -84,27 +84,27 @@ public class Handler implements Runnable {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
 
             } else if (!controllerObject1.getObject().getFile_filesize().containsKey(filename)
-                    || controllerObject1.getObject().getFiles_activeStore().contains(filename)) {
+                    || controllerObject1.getObject().getActiveFileStore().contains(filename)) {
                 outClient.println("ERROR_FILE_DOES_NOT_EXIST");
 
             } else {
                 synchronized (controllerObject1.getObject().getLock()) {
-                    if (controllerObject1.getObject().getFiles_activeRemove().contains(filename)
+                    if (controllerObject1.getObject().getActiveFileRemove().contains(filename)
                             || !controllerObject1.getObject().getFile_filesize().containsKey(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         outClient.println("ERROR_FILE_DOES_EXIST");
 
                         continue;
                     } else {
-                        controllerObject1.getObject().getFiles_activeRemove().add(filename);
+                        controllerObject1.getObject().getActiveFileRemove().add(filename);
                         controllerObject1.getObject().getFile_filesize().remove(filename);// remove file_filesize so if broken rebalance should fix
                     }
                 }
-                controllerObject1.getObject().getFileToRemove_ACKPorts().put(filename,
-                        new ArrayList<>(controllerObject1.getObject().getDstore_file_ports().get(filename))); // initializes the ports that wait for remove
+                controllerObject1.getObject().getAckPortsFileREmove().put(filename,
+                        new ArrayList<>(controllerObject1.getObject().getFilePortList().get(filename))); // initializes the ports that wait for remove
                 controllerObject1.getObject().getFiles_addCount().remove(filename);
 
                 synchronized (controllerObject1.getObject().getRemoveLock()) {
-                    for (Integer port : controllerObject1.getObject().getFileToRemove_ACKPorts().get(filename)) { // send ports file to delete
+                    for (Integer port : controllerObject1.getObject().getAckPortsFileREmove().get(filename)) { // send ports file to delete
                         Socket dstoreSocket = controllerObject1.getObject().getDstore_port_Socket().get(port);
                         PrintWriter outDstore = null;
                         try {
@@ -120,9 +120,9 @@ public class Handler implements Runnable {
                 boolean success_Remove = false;
                 long timeout_time = System.currentTimeMillis() + controllerObject1.getObject().getTimeout();
                 while (System.currentTimeMillis() <= timeout_time) {
-                    if (controllerObject1.getObject().getFileToRemove_ACKPorts().get(filename).size() == 0) { // checks if file to store has completed acknowledgements
+                    if (controllerObject1.getObject().getAckPortsFileREmove().get(filename).size() == 0) { // checks if file to store has completed acknowledgements
                         outClient.println("REMOVE_COMPLETE");
-                        controllerObject1.getObject().getDstore_file_ports().remove(filename);
+                        controllerObject1.getObject().getFilePortList().remove(filename);
                         success_Remove = true;
                         break;
                     }
@@ -131,8 +131,8 @@ public class Handler implements Runnable {
                 if (!success_Remove) {
                     System.err.println("REMOVE timed out for: " + filename);
                 }
-                controllerObject1.getObject().getFileToRemove_ACKPorts().remove(filename);
-                controllerObject1.getObject().getFiles_activeRemove().remove(filename); // remove file ActiveRemove from INDEX
+                controllerObject1.getObject().getAckPortsFileREmove().remove(filename);
+                controllerObject1.getObject().getActiveFileRemove().remove(filename); // remove file ActiveRemove from INDEX
             }
             break;
         }
@@ -151,8 +151,8 @@ public class Handler implements Runnable {
                 if (!controllerObject1.getObject().getFile_filesize().containsKey(filename)) { // CHECKS FILE CONTAINS AND INDEX
                     outClient.println("ERROR_FILE_DOES_NOT_EXIST");
                 } else {
-                    if (controllerObject1.getObject().getFiles_activeStore().contains(filename)
-                            || controllerObject1.getObject().getFiles_activeRemove().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
+                    if (controllerObject1.getObject().getActiveFileStore().contains(filename)
+                            || controllerObject1.getObject().getActiveFileRemove().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         if (getCommand(dataline).equals("LOAD")) {
                             outClient.println("ERROR_FILE_DOES_NOT_EXIST");
                             continue;
@@ -164,7 +164,7 @@ public class Handler implements Runnable {
 
                     if (getCommand(dataline).equals("LOAD")) {
                         dstore_file_portsLeftReload.put(filename,
-                                new ArrayList<>(controllerObject1.getObject().getDstore_file_ports().get(filename)));
+                                new ArrayList<>(controllerObject1.getObject().getFilePortList().get(filename)));
                         outClient.println("LOAD_FROM" + " "
                                 + dstore_file_portsLeftReload.get(filename).get(0) + " "
                                 + controllerObject1.getObject().getFile_filesize().get(filename));
@@ -203,25 +203,25 @@ public class Handler implements Runnable {
                 outClient.println("ERROR_FILE_ALREADY_EXISTS");
            } else {
                 synchronized (controllerObject1.getObject().getLock()) {
-                    if (controllerObject1.getObject().getFiles_activeStore().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
+                    if (controllerObject1.getObject().getActiveFileStore().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         outClient.println("ERROR_FILE_ALREADY_EXISTS");
                         continue;
                     } else {
-                        controllerObject1.getObject().getFiles_activeStore().add(filename);// ADD FILE STORING INDEX
+                        controllerObject1.getObject().getActiveFileStore().add(filename);// ADD FILE STORING INDEX
                     }
                 }
 
                 String portsToStore[] = getPortsToStore(controllerObject1.getObject().getR());
                 String portsToStoreString = String.join(" ", portsToStore);
-                controllerObject1.getObject().getFileToStore_ACKPorts().put(filename, new ArrayList<Integer>());// initialize store file acks
+                controllerObject1.getObject().getAckPortsFileStore().put(filename, new ArrayList<Integer>());// initialize store file acks
                 outClient.println("STORE_TO" + " " + portsToStoreString);
 
                 boolean success_Store = false;
                 long timeout_time = System.currentTimeMillis() + controllerObject1.getObject().getTimeout();
                 while (System.currentTimeMillis() <= timeout_time) {
-                    if (controllerObject1.getObject().getFileToStore_ACKPorts().get(filename).size() >= controllerObject1.getObject().getR()) { // checks if file to store has completed acknowledgements
+                    if (controllerObject1.getObject().getAckPortsFileStore().get(filename).size() >= controllerObject1.getObject().getR()) { // checks if file to store has completed acknowledgements
                         outClient.println("STORE_COMPLETE");
-                        controllerObject1.getObject().getDstore_file_ports().put(filename, controllerObject1.getObject().getFileToStore_ACKPorts().get(filename)); // update dstore_file_ports
+                        controllerObject1.getObject().getFilePortList().put(filename, controllerObject1.getObject().getAckPortsFileStore().get(filename)); // update dstore_file_ports
                         controllerObject1.getObject().getFile_filesize().put(filename, filesize); // add new file's filesize
                         success_Store = true;
                         break;
@@ -233,9 +233,9 @@ public class Handler implements Runnable {
                 }
 
                 synchronized (controllerObject1.getObject().getStoreLock()) {
-                    controllerObject1.getObject().getFileToStore_ACKPorts().remove(filename); // remove stored file from fileToStore_ACKPorts queue
+                    controllerObject1.getObject().getAckPortsFileStore().remove(filename); // remove stored file from fileToStore_ACKPorts queue
                 }
-                controllerObject1.getObject().getFiles_activeStore().remove(filename);// FILE STORED REMOVE INDEX
+                controllerObject1.getObject().getActiveFileStore().remove(filename);// FILE STORED REMOVE INDEX
             }
             break;
         }
@@ -248,7 +248,7 @@ public class Handler implements Runnable {
                 continue;
             } // log error and continue
             dstoreport = Integer.parseInt(data[1]);
-            if (controllerObject1.getObject().getDstore_port_numbfiles().containsKey(dstoreport)) { // checks if dstore port is already used
+            if (controllerObject1.getObject().getDstoreFileCount().containsKey(dstoreport)) { // checks if dstore port is already used
                 System.err.println(
                         "Connection refused, DStore port already used: " + dstoreport);
                 try {
@@ -258,9 +258,9 @@ public class Handler implements Runnable {
                 }
                 break;
             }
-            synchronized (controllerObject1.getObject().getDstoreJoinLock()) {
-                controllerObject1.getObject().getDstore_port_files().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
-                controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
+            synchronized (controllerObject1.getObject().getDstorejoinlock()) {
+                controllerObject1.getObject().getDstoreFileList().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
+                controllerObject1.getObject().getDstoreFileCount().put(dstoreport, 0); // initialize port/numbfiles hashmap
                 controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                 isDstore = true;
                 controllerObject1.getObject().getDstoreCount().incrementAndGet();
@@ -270,24 +270,24 @@ public class Handler implements Runnable {
 
     public void storeACK (String[] data, Integer dstoreport) {
         synchronized (controllerObject1.getObject().getStoreLock()) {
-            if (controllerObject1.getObject().getFileToStore_ACKPorts().containsKey(data[1]))
-                controllerObject1.getObject().getFileToStore_ACKPorts().get(data[1]).add(dstoreport);// add ack port inside chmap
+            if (controllerObject1.getObject().getAckPortsFileStore().containsKey(data[1]))
+                controllerObject1.getObject().getAckPortsFileStore().get(data[1]).add(dstoreport);// add ack port inside chmap
         }
-        controllerObject1.getObject().getDstore_port_files().get(dstoreport).add(data[1]);
-        controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport,
-                controllerObject1.getObject().getDstore_port_numbfiles().get(dstoreport) + 1);
+        controllerObject1.getObject().getDstoreFileList().get(dstoreport).add(data[1]);
+        controllerObject1.getObject().getDstoreFileCount().put(dstoreport,
+                controllerObject1.getObject().getDstoreFileCount().get(dstoreport) + 1);
     }
 
     public void removeACK (String[] data, Integer dstoreport) {
         synchronized (controllerObject1.getObject().getRemoveLock()) {
-            if (controllerObject1.getObject().getFileToRemove_ACKPorts().containsKey(data[1])) {
-                controllerObject1.getObject().getFileToRemove_ACKPorts().get(data[1]).remove(dstoreport);
+            if (controllerObject1.getObject().getAckPortsFileREmove().containsKey(data[1])) {
+                controllerObject1.getObject().getAckPortsFileREmove().get(data[1]).remove(dstoreport);
             } // removing dstore with ack from list
         }
-        controllerObject1.getObject().getDstore_port_files().get(dstoreport).remove(data[1]); //removes file from map of port
-        controllerObject1.getObject().getDstore_file_ports().get(data[1]).remove(dstoreport);// remove port from file - ports map
-        controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport,
-                controllerObject1.getObject().getDstore_port_numbfiles().get(dstoreport) - 1); // suspend 1 from file count
+        controllerObject1.getObject().getDstoreFileList().get(dstoreport).remove(data[1]); //removes file from map of port
+        controllerObject1.getObject().getFilePortList().get(data[1]).remove(dstoreport);// remove port from file - ports map
+        controllerObject1.getObject().getDstoreFileCount().put(dstoreport,
+                controllerObject1.getObject().getDstoreFileCount().get(dstoreport) - 1); // suspend 1 from file count
     }
 
     public ArrayList<String> getInstructionList() {
@@ -354,7 +354,7 @@ public class Handler implements Runnable {
                         continue;
                     } // log error and continue
                     dstoreport = Integer.parseInt(data[1]);
-                    if (controllerObject1.getObject().getDstore_port_numbfiles().containsKey(dstoreport)) { // checks if dstore port is already used
+                    if (controllerObject1.getObject().getDstoreFileCount().containsKey(dstoreport)) { // checks if dstore port is already used
                         System.err.println(
                                 "Connection refused, DStore port already used: " + dstoreport);
                         try {
@@ -364,9 +364,9 @@ public class Handler implements Runnable {
                         }
                         break;
                     }
-                    synchronized (controllerObject1.getObject().getDstoreJoinLock()) {
-                        controllerObject1.getObject().getDstore_port_files().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
-                        controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
+                    synchronized (controllerObject1.getObject().getDstorejoinlock()) {
+                        controllerObject1.getObject().getDstoreFileList().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
+                        controllerObject1.getObject().getDstoreFileCount().put(dstoreport, 0); // initialize port/numbfiles hashmap
                         controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                         isDstore = true;
                         controllerObject1.getObject().getDstoreCount().incrementAndGet();
@@ -425,7 +425,7 @@ public class Handler implements Runnable {
     private String[] getPortsToStore(int R) { // finds R ports with least files
         Integer ports[] = new Integer[R];
 
-        for (Integer port : controllerObject1.getObject().getDstore_port_numbfiles().keySet()) {
+        for (Integer port : controllerObject1.getObject().getDstoreFileCount().keySet()) {
             int max = 0;
 
             for (int i = 0; i < R; i++) {
@@ -434,11 +434,11 @@ public class Handler implements Runnable {
                     ports[i] = port;
                     break;
                 }
-                if (ports[i] != null && controllerObject1.getObject().getDstore_port_numbfiles().get(ports[i]) > controllerObject1.getObject().getDstore_port_numbfiles().get(ports[max])) {
+                if (ports[i] != null && controllerObject1.getObject().getDstoreFileCount().get(ports[i]) > controllerObject1.getObject().getDstoreFileCount().get(ports[max])) {
                     max = i;
                 }
             }
-            if (controllerObject1.getObject().getDstore_port_numbfiles().get(port) < controllerObject1.getObject().getDstore_port_numbfiles().get(ports[max])) {
+            if (controllerObject1.getObject().getDstoreFileCount().get(port) < controllerObject1.getObject().getDstoreFileCount().get(ports[max])) {
                 ports[max] = port;
             }
         }
@@ -452,23 +452,23 @@ public class Handler implements Runnable {
 
     private synchronized void clearPort(Integer port) {
         System.out.println("CLEARING DISCONNECTED PORT " + port);
-        for (String file : controllerObject1.getObject().getDstore_port_files().get(port)) {
+        for (String file : controllerObject1.getObject().getDstoreFileList().get(port)) {
             if (controllerObject1.getObject().getFiles_addCount().get(file) == null) {
                 controllerObject1.getObject().getFiles_addCount().put(file, 1);
             } else {
                 controllerObject1.getObject().getFiles_addCount().put(file, controllerObject1.getObject().getFiles_addCount().get(file) + 1);
             }
         }
-        controllerObject1.getObject().getDstore_port_files().remove(port);
-        controllerObject1.getObject().getDstore_port_numbfiles().remove(port);
+        controllerObject1.getObject().getDstoreFileList().remove(port);
+        controllerObject1.getObject().getDstoreFileCount().remove(port);
         controllerObject1.getObject().getDstore_port_Socket().remove(port);
         ConcurrentHashMap<String, ArrayList<Integer>> tempFilePorts = new ConcurrentHashMap<String, ArrayList<Integer>>(
-                controllerObject1.getObject().getDstore_file_ports());
+                controllerObject1.getObject().getFilePortList());
         for (String file : tempFilePorts.keySet()) {
             if (!controllerObject1.getObject().getFile_filesize().keySet().contains(file)) {
-                controllerObject1.getObject().getDstore_file_ports().remove(file);
-            } else if (controllerObject1.getObject().getDstore_file_ports().get(file).contains(port)) {
-                controllerObject1.getObject().getDstore_file_ports().get(file).remove(port);
+                controllerObject1.getObject().getFilePortList().remove(file);
+            } else if (controllerObject1.getObject().getFilePortList().get(file).contains(port)) {
+                controllerObject1.getObject().getFilePortList().get(file).remove(port);
             }
         }
         System.out.println("CLEARED PORT " + port);

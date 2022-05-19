@@ -33,18 +33,15 @@ public class DstoreClientHandle implements Runnable {
                 if (data.length != 3) {
                     System.err.println("Malformed message received for STORE");
                     continue;
-                } // log error and continue
+                }
                 outClient.println("ACK");
-//                                        DstoreLogger.getInstance().messageSent(client, "ACK");
                 int filesize = Integer.parseInt(data[2]);
                 File outputFile = new File(subDstore.getObject().getPath() + File.separator + data[1]);
                 FileOutputStream out = new FileOutputStream(outputFile);
                 long timeout_time = System.currentTimeMillis() + subDstore.getObject().getTimeout();
                 while (System.currentTimeMillis() <= timeout_time) {
-                    out.write(in.readNBytes(filesize)); // possible threadlock?? maybe
+                    out.write(in.readNBytes(filesize));
                     outController.println("STORE_ACK" + " " + data[1]);
-//                                            DstoreLogger.getInstance().messageSent(controller,
-//                                                    Protocol.STORE_ACK_TOKEN + " " + data[1]);
                     break;
                 }
                 out.flush();
@@ -119,7 +116,6 @@ public class DstoreClientHandle implements Runnable {
             for (;;) {
                 try {
                     dataline = inClient.readLine();
-//                                DstoreLogger.getInstance().messageReceived(client, dataline);
                     if (dataline != null) {
                         String[] data = dataline.split(" ");
                         getCommand(data, dataline);
