@@ -1,11 +1,14 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class HandleDstore implements Runnable{
 
     Socket controller;
     SubDstore subDstoreClass = null;
+
+    ArrayList<String> instructionList = new ArrayList<>();
 
     public HandleDstore (Socket socket, SubDstore subDstoreClass) {
         this.controller = socket;
@@ -51,6 +54,36 @@ public class HandleDstore implements Runnable{
     }
 
 
+    public void controllerList(String[] data, PrintWriter outController) {
+        for (;;) {
+            if (data.length != 1) {
+                System.err.println("Malformed message received for LIST");
+                continue;
+            } // log error and continue
+            String[] fileList = subDstoreClass.getObject().getFolder().list();
+            String listToSend = String.join(" ", fileList);
+            outController.println("LIST" + " " + listToSend);
+            break;
+        }
+    }
+
+    public ArrayList<String> getInstructionList() {
+        instructionList.add("REMOVE");
+        instructionList.add("LIST");
+        return instructionList;
+    }
+
+    public void controllerCommandHandler (String command, String[] data, PrintWriter outController) {
+        //-----------------------------Controller Remove Command-----------------------------
+        if (command.equals("REMOVE")) {
+            controllerRemove(data, outController);
+        //-----------------------------Controller List Command-----------------------------
+        } else if (command.equals("LIST")) {
+            controllerList(data, outController);
+
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -72,73 +105,11 @@ public class HandleDstore implements Runnable{
                         getCommand(data, dataline);
                         System.out.println("Revieved Controller Command: " + getCommand(data, dataline));
 
-                        //-----------------------------Controller Remove Command-----------------------------
-                        if (getCommand(data, dataline).equals("REMOVE")) {
-                            controllerRemove(data, outController);
-                        } else
-
-                            //-----------------------------Controller Rebalance Command-----------------------------
-                            if (getCommand(data, dataline).equals("REBALANCE")) {
-                                Integer filesToSend = Integer.parseInt(data[1]);
-                                Integer index = 2;
-                                for (int i = 0; i < filesToSend; i++) {
-                                    String filename = data[index];
-                                    Integer portSendCount = Integer.parseInt(data[index + 1]);
-                                    for (int j = index + 2; j <= index + 1 + portSendCount; j++) {
-                                        Socket dStoreSocket = new Socket(InetAddress.getByName("localhost"),
-                                                Integer.parseInt(data[j]));
-                                        BufferedReader inDstore = new BufferedReader(
-                                                new InputStreamReader(dStoreSocket.getInputStream()));
-                                        PrintWriter outDstore = new PrintWriter(dStoreSocket.getOutputStream(), true);
-                                        File existingFile = new File(subDstoreClass.getObject().getPath() + File.separator + filename);
-                                        Integer filesize = (int) existingFile.length(); // casting long to int file size limited to fat32
-                                        outDstore.println(
-                                                "REBALANCE_STORE" + " " + filename + " " + filesize);
-//                                            DstoreLogger.getInstance().messageSent(dStoreSocket,
-//                                                    Protocol.REBALANCE_STORE_TOKEN + " " + filename + " " + filesize);
-                                        if (inDstore.readLine() == "ACK") {
-//                                                DstoreLogger.getInstance().messageReceived(dStoreSocket,
-//                                                        Protocol.ACK_TOKEN);
-                                            FileInputStream inf = new FileInputStream(existingFile);
-                                            OutputStream out = dStoreSocket.getOutputStream();
-                                            out.write(inf.readNBytes(filesize));
-                                            out.flush();
-                                            inf.close();
-                                            out.close();
-                                            dStoreSocket.close();
-                                        } else {
-                                            dStoreSocket.close();
-                                        }
-                                    }
-                                    index = index + portSendCount + 2; // ready index for next file
-                                }
-                                Integer fileRemoveCount = Integer.parseInt(data[index]);
-                                for (int z = index + 1; z < index + 1 + fileRemoveCount; z++) {
-                                    File existingFile = new File(subDstoreClass.getObject().getPath() + File.separator + data[z]);
-                                    if (existingFile.exists()) {
-                                        existingFile.delete();
-                                    }
-                                }
-
-                                outController.println("REBALANCE_COMPLETE");
-//                                    DstoreLogger.getInstance().messageSent(controller, "REBALANCE_COMPLETE");
-
-                            } else
-
-                                //-----------------------------Controller List Command-----------------------------
-                                if (getCommand(data, dataline).equals("LIST")) {
-                                    if (data.length != 1) {
-                                        System.err.println("Malformed message received for LIST");
-                                        continue;
-                                    } // log error and continue
-                                    String[] fileList = subDstoreClass.getObject().getFolder().list();
-                                    String listToSend = String.join(" ", fileList);
-                                    outController.println("LIST" + " " + listToSend);
-//                                        DstoreLogger.getInstance().messageSent(controller,
-//                                                Protocol.LIST_TOKEN + " " + listToSend);
-                                } else {
-                                    System.err.println("Unrecognised command! - " + dataline); //log and continue
-                                }
+                        if (getInstructionList().contains(getCommand(data, dataline))) {
+                            controllerCommandHandler(getCommand(data, dataline), data, outController);
+                        } else {
+                            System.err.println("Unrecognised command! - " + dataline); //log and continue
+                        }
                     } else {
                         if (controller.isConnected())
                             controller.close();
