@@ -13,6 +13,18 @@ public class DstoreClientHandle implements Runnable {
     }
 
 
+    public String getCommand (String[] data, String dataline) {
+        String command;
+        if (data.length == 1) {
+            command = dataline.trim();
+            data[0] = command;
+            return command;
+        } else {
+            command = data[0];
+            return command;
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -29,17 +41,18 @@ public class DstoreClientHandle implements Runnable {
 //                                DstoreLogger.getInstance().messageReceived(client, dataline);
                     if (dataline != null) {
                         String[] data = dataline.split(" ");
-                        String command;
+                        /*String command;
                         if (data.length == 1) {
                             command = dataline.trim();
                             data[0] = command;
                         } else {
                             command = data[0];
-                        }
-                        System.out.println("Recieved Client Command: " + command);
+                        }*/
+                        getCommand(data, dataline);
+                        System.out.println("Recieved Client Command: " + getCommand(data, dataline));
 
                         //-----------------------------Client Store Command-----------------------------
-                        if (command.equals("STORE")) {
+                        if (getCommand(data, dataline).equals("STORE")) {
                             if (data.length != 3) {
                                 System.err.println("Malformed message received for STORE");
                                 continue;
@@ -64,7 +77,7 @@ public class DstoreClientHandle implements Runnable {
                         } else
 
                             //-----------------------------Dstore Rebalance Asked-----------------------------
-                            if (command.equals("REBALANCE_STORE")) {
+                            if (getCommand(data, dataline).equals("REBALANCE_STORE")) {
                                 if (data.length != 3) {
                                     System.err.println("Malformed message received for REBALANCE_STORE");
                                     continue;
@@ -82,7 +95,7 @@ public class DstoreClientHandle implements Runnable {
                             } else
 
                                 //-----------------------------Client Load Command-----------------------------
-                                if (command.equals("LOAD_DATA")) {
+                                if (getCommand(data, dataline).equals("LOAD_DATA")) {
                                     if (data.length != 2) {
                                         System.err.println("Malformed message received for LOAD");
                                         continue;
