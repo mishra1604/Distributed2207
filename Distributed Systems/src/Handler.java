@@ -82,25 +82,19 @@ public class Handler implements Runnable {
             String filename = data[1];
             if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+
             } else if (!controllerObject1.getObject().getFile_filesize().containsKey(filename)
                     || controllerObject1.getObject().getFiles_activeStore().contains(filename)) {
                 outClient.println("ERROR_FILE_DOES_NOT_EXIST");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+
             } else {
                 synchronized (controllerObject1.getObject().getLock()) {
                     if (controllerObject1.getObject().getFiles_activeRemove().contains(filename)
                             || !controllerObject1.getObject().getFile_filesize().containsKey(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         outClient.println("ERROR_FILE_DOES_EXIST");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+
                         continue;
                     } else {
-                        /*while (controllerObject1.getObject().getActiveRebalance()) { // waiting for rebalance to end
-                            continue;
-                        }*/
                         controllerObject1.getObject().getFiles_activeRemove().add(filename);
                         controllerObject1.getObject().getFile_filesize().remove(filename);// remove file_filesize so if broken rebalance should fix
                     }
@@ -120,8 +114,6 @@ public class Handler implements Runnable {
                             System.out.println("outDstore error, hanldeThings()" + e);
                         }
                         outDstore.println("REMOVE" + " " + filename);
-//                                                                    ControllerLogger.getInstance().messageSent(dstoreSocket,
-//                                                                            Protocol.REMOVE_TOKEN + " " + filename);
                     }
                 }
 
@@ -130,8 +122,6 @@ public class Handler implements Runnable {
                 while (System.currentTimeMillis() <= timeout_time) {
                     if (controllerObject1.getObject().getFileToRemove_ACKPorts().get(filename).size() == 0) { // checks if file to store has completed acknowledgements
                         outClient.println("REMOVE_COMPLETE");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.REMOVE_COMPLETE_TOKEN);
                         controllerObject1.getObject().getDstore_file_ports().remove(filename);
                         success_Remove = true;
                         break;
@@ -157,32 +147,20 @@ public class Handler implements Runnable {
             String filename = data[1];
             if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                                        ControllerLogger.getInstance().messageSent(client,
-//                                                                Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
             } else {
                 if (!controllerObject1.getObject().getFile_filesize().containsKey(filename)) { // CHECKS FILE CONTAINS AND INDEX
                     outClient.println("ERROR_FILE_DOES_NOT_EXIST");
-//                                                            ControllerLogger.getInstance().messageSent(client,
-//                                                                    Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                 } else {
                     if (controllerObject1.getObject().getFiles_activeStore().contains(filename)
                             || controllerObject1.getObject().getFiles_activeRemove().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         if (getCommand(dataline).equals("LOAD")) {
                             outClient.println("ERROR_FILE_DOES_NOT_EXIST");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
                             continue;
                         } else {
                             outClient.println("ERROR_LOAD");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_LOAD_TOKEN);
                             continue;
                         }
                     }
-
-                    /*while (controllerObject1.getObject().getActiveRebalance()) {
-                        continue;
-                    }*/
 
                     if (getCommand(dataline).equals("LOAD")) {
                         dstore_file_portsLeftReload.put(filename,
@@ -190,10 +168,6 @@ public class Handler implements Runnable {
                         outClient.println("LOAD_FROM" + " "
                                 + dstore_file_portsLeftReload.get(filename).get(0) + " "
                                 + controllerObject1.getObject().getFile_filesize().get(filename));
-//                                                                ControllerLogger.getInstance().messageSent(client,
-//                                                                        Protocol.LOAD_FROM_TOKEN + " "
-//                                                                                + dstore_file_portsLeftReload.get(filename).get(0)
-//                                                                                + " " + file_filesize.get(filename));
                         dstore_file_portsLeftReload.get(filename).remove(0);
                     } else {
                         if (dstore_file_portsLeftReload.get(filename) != null
@@ -201,16 +175,9 @@ public class Handler implements Runnable {
                             outClient.println("LOAD_FROM" + " "
                                     + dstore_file_portsLeftReload.get(filename).get(0) + " "
                                     + controllerObject1.getObject().getFile_filesize().get(filename));
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.LOAD_FROM_TOKEN
-//                                                                                    + " " + dstore_file_portsLeftReload
-//                                                                                    .get(filename).get(0)
-//                                                                                    + " " + file_filesize.get(filename));
                             dstore_file_portsLeftReload.get(filename).remove(0);
                         } else {
                             outClient.println("ERROR_LOAD");
-//                                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                                            Protocol.ERROR_LOAD_TOKEN);
                         }
                     }
 
@@ -231,24 +198,15 @@ public class Handler implements Runnable {
 
             if (controllerObject1.getObject().getDstoreCount().get() < controllerObject1.getObject().getR()) {
                 outClient.println("ERROR_NOT_ENOUGH_DSTORES");
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
             } else if (controllerObject1.getObject().getFile_filesize().get(filename) != null
                     || controllerObject1.getObject().getFile_filesize().contains(filename)) { // checks if file exists or in Remove INDEX
                 outClient.println("ERROR_FILE_ALREADY_EXISTS");
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
-            } else {
+           } else {
                 synchronized (controllerObject1.getObject().getLock()) {
                     if (controllerObject1.getObject().getFiles_activeStore().contains(filename)) { // INDEX CHECKS FOR CONCURENT FILE STORE
                         outClient.println("ERROR_FILE_ALREADY_EXISTS");
-//                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                            Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
                         continue;
                     } else {
-                        /*while (controllerObject1.getObject().getActiveRebalance()) { // waiting for rebalance to end
-                            continue;
-                        }*/
                         controllerObject1.getObject().getFiles_activeStore().add(filename);// ADD FILE STORING INDEX
                     }
                 }
@@ -257,16 +215,12 @@ public class Handler implements Runnable {
                 String portsToStoreString = String.join(" ", portsToStore);
                 controllerObject1.getObject().getFileToStore_ACKPorts().put(filename, new ArrayList<Integer>());// initialize store file acks
                 outClient.println("STORE_TO" + " " + portsToStoreString);
-//                                            ControllerLogger.getInstance().messageSent(client,
-//                                                    Protocol.STORE_TO_TOKEN + " " + portsToStoreString);
 
                 boolean success_Store = false;
                 long timeout_time = System.currentTimeMillis() + controllerObject1.getObject().getTimeout();
                 while (System.currentTimeMillis() <= timeout_time) {
                     if (controllerObject1.getObject().getFileToStore_ACKPorts().get(filename).size() >= controllerObject1.getObject().getR()) { // checks if file to store has completed acknowledgements
                         outClient.println("STORE_COMPLETE");
-//                                                    ControllerLogger.getInstance().messageSent(client,
-//                                                            Protocol.STORE_COMPLETE_TOKEN);
                         controllerObject1.getObject().getDstore_file_ports().put(filename, controllerObject1.getObject().getFileToStore_ACKPorts().get(filename)); // update dstore_file_ports
                         controllerObject1.getObject().getFile_filesize().put(filename, filesize); // add new file's filesize
                         success_Store = true;
@@ -305,17 +259,11 @@ public class Handler implements Runnable {
                 break;
             }
             synchronized (controllerObject1.getObject().getDstoreJoinLock()) {
-                /*while (controllerObject1.getObject().getActiveRebalance()) {
-                    continue;
-                }*/
-//                                                                        ControllerLogger.getInstance().dstoreJoined(client, dstoreport);
                 controllerObject1.getObject().getDstore_port_files().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
                 controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
                 controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                 isDstore = true;
                 controllerObject1.getObject().getDstoreCount().incrementAndGet();
-                //controllerObject1.getObject().setActiveRebalance(true);
-                //controllerObject1.getObject().setRebalanceTime(System.currentTimeMillis()); // turn on rebalance if not running
             }
         }
     }
@@ -397,10 +345,7 @@ public class Handler implements Runnable {
                 if (getInstructionList().contains(getCommand(dataline))) {
                     instructionHandler(getCommand(dataline), data, dataline, outClient, dstoreport, dstore_file_portsLeftReload, isDstore);
 
-                } /*else if (getCommand(dataline).equals("REBALANCE_COMPLETE") && controllerObject1.getObject().getActiveRebalance()) { // Dstore REMOVE_ACK filename
-                            controllerObject1.getObject().getRebalanceCompleteACK().incrementAndGet();
-
-                }*/  else if (getCommand(dataline).equals("LIST") && isDstore && controllerObject1.getObject().getActiveList()) {
+                }  else if (getCommand(dataline).equals("LIST") && isDstore && controllerObject1.getObject().getActiveList()) {
                     dstoreList(data, dstoreport);
 
                 }  else if (getCommand(dataline).equals("JOIN")) {
@@ -420,16 +365,11 @@ public class Handler implements Runnable {
                         break;
                     }
                     synchronized (controllerObject1.getObject().getDstoreJoinLock()) {
-                        /*while (controllerObject1.getObject().getActiveRebalance()) {
-                            continue;
-                        }*/
                         controllerObject1.getObject().getDstore_port_files().put(dstoreport, new ArrayList<String>()); // initialize port number of dstore
                         controllerObject1.getObject().getDstore_port_numbfiles().put(dstoreport, 0); // initialize port/numbfiles hashmap
                         controllerObject1.getObject().getDstore_port_Socket().put(dstoreport, clientSocket);
                         isDstore = true;
                         controllerObject1.getObject().getDstoreCount().incrementAndGet();
-                        //controllerObject1.getObject().setActiveRebalance(true);
-                        //controllerObject1.getObject().setRebalanceTime(System.currentTimeMillis()); // turn on rebalance if not running
                     }
                 } else {
                     System.err.println("Unrecognised or Timed Out Command! - " + dataline);
@@ -439,9 +379,6 @@ public class Handler implements Runnable {
                 if (isDstore) {
                     System.err.println("DSTORE Disconnected!");
                     controllerObject1.getObject().getDstoreCount().decrementAndGet(); //decrease count if dstore disconnected
-                    /*while (controllerObject1.getObject().getActiveRebalance()) {
-                        continue;
-                    }*/
                     synchronized (controllerObject1.getObject().getLock()) {
                         clearPort(dstoreport); // clear port data if dstore disonnected
                     }
@@ -474,9 +411,6 @@ public class Handler implements Runnable {
                 if (isDstore) {
                     System.err.println("DSTORE CRASHED! -" + e);
                     controllerObject1.getObject().getDstoreCount().decrementAndGet(); //decrease count if dstore disconnected
-                    /*while (controllerObject1.getObject().getActiveRebalance()) {
-                        continue;
-                    }*/
                     synchronized (controllerObject1.getObject().getLock()) {
                         clearPort(dstoreport); // clear port data if dstore disonnected
                     }
