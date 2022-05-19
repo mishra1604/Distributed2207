@@ -12,6 +12,22 @@ public class HandleDstore implements Runnable{
         this.subDstoreClass = subDstoreClass;
     }
 
+    public String getCommand (String[] data, String dataline) {
+        String command;
+        if (data.length == 1) {
+            command = dataline.trim();
+            data[0] = command;
+            dataline = null;
+            return command;
+        } else {
+            command = data[0];
+            data[data.length - 1] = data[data.length - 1].trim();
+            dataline = null;
+            return command;
+        }
+    }
+
+
     @Override
     public void run() {
         try {
@@ -29,20 +45,12 @@ public class HandleDstore implements Runnable{
                     //DstoreLogger.getInstance().messageReceived(controller, dataline);
                     if (dataline != null) {
                         String[] data = dataline.split(" ");
-                        String command;
-                        if (data.length == 1) {
-                            command = dataline.trim();
-                            data[0] = command;
-                            dataline = null;
-                        } else {
-                            command = data[0];
-                            data[data.length - 1] = data[data.length - 1].trim();
-                            dataline = null;
-                        }
-                        System.out.println("Revieved Controller Command: " + command);
+
+                        getCommand(data, dataline);
+                        System.out.println("Revieved Controller Command: " + getCommand(data, dataline));
 
                         //-----------------------------Controller Remove Command-----------------------------
-                        if (command.equals("REMOVE")) {
+                        if (getCommand(data, dataline).equals("REMOVE")) {
                             if (data.length != 2) {
                                 System.err.println("Malformed message received for Remove");
                                 continue;
@@ -62,7 +70,7 @@ public class HandleDstore implements Runnable{
                         } else
 
                             //-----------------------------Controller Rebalance Command-----------------------------
-                            if (command.equals("REBALANCE")) {
+                            if (getCommand(data, dataline).equals("REBALANCE")) {
                                 Integer filesToSend = Integer.parseInt(data[1]);
                                 Integer index = 2;
                                 for (int i = 0; i < filesToSend; i++) {
@@ -110,7 +118,7 @@ public class HandleDstore implements Runnable{
                             } else
 
                                 //-----------------------------Controller List Command-----------------------------
-                                if (command.equals("LIST")) {
+                                if (getCommand(data, dataline).equals("LIST")) {
                                     if (data.length != 1) {
                                         System.err.println("Malformed message received for LIST");
                                         continue;
