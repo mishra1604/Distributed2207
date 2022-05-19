@@ -25,7 +25,6 @@ public class DstoreClientHandle implements Runnable {
         }
     }
 
-
     public void clientStore (String[] data, PrintWriter outClient, PrintWriter outController, InputStream in) {
         for (;;) {
             try {
@@ -57,6 +56,37 @@ public class DstoreClientHandle implements Runnable {
         }
     }
 
+
+    public void clientLoad (String[] data) {
+        for (;;) {
+            try {
+                if (data.length != 2) {
+                    System.err.println("Malformed message received for LOAD");
+                    continue;
+                } // log error and continue
+                String filename = data[1];
+                File existingFile = new File(subDstore.getObject().getPath() + File.separator + filename);
+                if (!existingFile.exists() || !existingFile.isFile()) {
+                    client.close();
+                    return;
+                } // closes connection and exits thread
+
+                int filesize = (int) existingFile.length(); // casting long to int file size limited to fat32
+                FileInputStream inf = new FileInputStream(existingFile);
+                OutputStream out = client.getOutputStream();
+                out.write(inf.readNBytes(filesize));
+                out.flush();
+                inf.close();
+                out.close();
+                client.close();
+                return;
+            } catch (Exception e) {
+                System.out.println("loading error ");
+            }
+            break;
+        }
+    }
+
     @Override
     public void run() {
         try {
@@ -78,29 +108,8 @@ public class DstoreClientHandle implements Runnable {
 
                         //-----------------------------Client Store Command-----------------------------
                         if (getCommand(data, dataline).equals("STORE")) {
-                            /*if (data.length != 3) {
-                                System.err.println("Malformed message received for STORE");
-                                continue;
-                            } // log error and continue
-                            outClient.println("ACK");
-//                                        DstoreLogger.getInstance().messageSent(client, "ACK");
-                            int filesize = Integer.parseInt(data[2]);
-                            File outputFile = new File(subDstore.getObject().getPath() + File.separator + data[1]);
-                            FileOutputStream out = new FileOutputStream(outputFile);
-                            long timeout_time = System.currentTimeMillis() + subDstore.getObject().getTimeout();
-                            while (System.currentTimeMillis() <= timeout_time) {
-                                out.write(in.readNBytes(filesize)); // possible threadlock?? maybe
-                                outController.println("STORE_ACK" + " " + data[1]);
-//                                            DstoreLogger.getInstance().messageSent(controller,
-//                                                    Protocol.STORE_ACK_TOKEN + " " + data[1]);
-                                break;
-                            }
-                            out.flush();
-                            out.close();
-                            client.close();
-                            return;*/
                             clientStore(data, outClient, outController, in);
-                        } else
+                        } /*else
 
                             //-----------------------------Dstore Rebalance Asked-----------------------------
                             if (getCommand(data, dataline).equals("REBALANCE_STORE")) {
@@ -118,30 +127,11 @@ public class DstoreClientHandle implements Runnable {
                                 out.close();
                                 client.close();
                                 return;
-                            } else
+                            }*/ else
 
                                 //-----------------------------Client Load Command-----------------------------
                                 if (getCommand(data, dataline).equals("LOAD_DATA")) {
-                                    if (data.length != 2) {
-                                        System.err.println("Malformed message received for LOAD");
-                                        continue;
-                                    } // log error and continue
-                                    String filename = data[1];
-                                    File existingFile = new File(subDstore.getObject().getPath() + File.separator + filename);
-                                    if (!existingFile.exists() || !existingFile.isFile()) {
-                                        client.close();
-                                        return;
-                                    } // closes connection and exits thread
-
-                                    int filesize = (int) existingFile.length(); // casting long to int file size limited to fat32
-                                    FileInputStream inf = new FileInputStream(existingFile);
-                                    OutputStream out = client.getOutputStream();
-                                    out.write(inf.readNBytes(filesize));
-                                    out.flush();
-                                    inf.close();
-                                    out.close();
-                                    client.close();
-                                    return;
+                                    clientLoad(data);
                                 } else {
                                     System.err.println("Unrecognised Command! - " + dataline);
                                     continue; // log error
